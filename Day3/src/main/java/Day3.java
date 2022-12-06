@@ -15,7 +15,7 @@ public class Day3 {
             if (Files.exists(path)) {
                 List<String> lines = Files.readAllLines(path);
 
-                // execise1(lines);
+                execise1(lines);
                 execise2(lines);
 
             }
