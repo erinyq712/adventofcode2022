@@ -83,6 +83,10 @@ public class FileSystem {
         public List<File> getFiles() {
             return files;
         }
+
+        public boolean isRoot() {
+            return parent == null;
+        }
     }
 
     public void cd(String name) {
