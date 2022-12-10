@@ -48,11 +48,12 @@ The Elves don't care about distant trees taller than those found by the rules ab
 
 In the example above, consider the middle 5 in the second row:
 
-30373
-25512
-65332
-33549
-35390
+30373  
+25512  
+65332  
+33549  
+35390  
+
 Looking up, its view is not blocked; it can see 1 tree (of height 3).
 Looking left, its view is blocked immediately; it can see only 1 tree (of height 5, right next to it).
 Looking right, its view is not blocked; it can see 2 trees.
@@ -61,11 +62,12 @@ A tree's scenic score is found by multiplying together its viewing distance in e
 
 However, you can do even better: consider the tree of height 5 in the middle of the fourth row:
 
-30373
-25512
-65332
-33549
-35390
+30373  
+25512  
+65332  
+33549  
+35390  
+
 Looking up, its view is blocked at 2 trees (by another tree with a height of 5).
 Looking left, its view is not blocked; it can see 2 trees.
 Looking down, its view is also not blocked; it can see 1 tree.
@@ -73,3 +75,5 @@ Looking right, its view is blocked at 2 trees (by a massive tree of height 9).
 This tree's scenic score is 8 (2 * 2 * 1 * 2); this is the ideal spot for the tree house.
 
 Consider each tree on your map. What is the highest scenic score possible for any tree?
+
+Score[position=Position[x=47, y=78], score=527340]

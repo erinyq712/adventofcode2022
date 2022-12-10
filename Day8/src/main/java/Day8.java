@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -10,6 +11,8 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+
+import static java.lang.Math.abs;
 
 public class Day8 {
     public static void main(String[] args) {
@@ -20,8 +23,8 @@ public class Day8 {
                         .collect(ArrayList::new,
                                 ArrayList::add,
                                 ArrayList::addAll);
-                execise1(lines);
-                // execise2(lines);
+                // execise1(lines);
+                execise2(lines);
 
             }
         } catch (IOException e) {
@@ -53,6 +56,11 @@ public class Day8 {
             }
             return row.get(pos);
         }
+
+        public int at(Position p) {
+            return at(p.x, p.y);
+        }
+
 
         private Set<Position> getHiddenInRow(int maxHeight, int row, int pos, UnaryOperator<Integer> next) {
             var nextPos = next.apply(pos);
@@ -143,6 +151,57 @@ public class Day8 {
         public long size() {
             return heights.size() * (heights.size()> 0 ? heights.get(0).size() : 0);
         }
+
+        public long getScore(Position p) {
+            return getRightScore(p)*getLeftScore(p)*getUpScore(p)*getDownScore(p);
+        }
+
+        private long getRightScore(Position p) {
+            return getHorizontalScore(p,y->y+1);
+        }
+        private long getLeftScore(Position p) {
+            return getHorizontalScore(p,y->y-1);
+        }
+
+        private long getHorizontalScore(Position p, UnaryOperator<Integer> next) {
+            int pos = next.apply(p.y);
+            var height = at(p);
+            var nextHeight = at(p.x, pos);
+            while (nextHeight < height && nextHeight > -1) {
+                pos = next.apply(pos);
+                nextHeight = at(p.x, pos);
+            }
+            return abs(nextHeight == -1 ? pos-next.apply(p.y) : pos-p.y);
+        }
+
+        private long getUpScore(Position p) {
+            return getVerticalScore(p,x->x-1);
+        }
+        private long getDownScore(Position p) {
+            return getVerticalScore(p,x->x+1);
+        }
+
+        private long getVerticalScore(Position p, UnaryOperator<Integer> next) {
+            int row = next.apply(p.x);
+            var height = at(p);
+            var nextHeight = at(row, p.y);
+            while (nextHeight < height && nextHeight > -1) {
+                row = next.apply(row);
+                nextHeight = at(row, p.y);
+            }
+            return abs(nextHeight == -1 ? row-next.apply(p.x) : row-p.x);
+        }
+
+        record Score (Position position, long score) {
+        }
+
+        public Score getBestPosition() {
+            var positions = IntStream.range(0, heights.size()).mapToObj(x -> {
+                var columns = heights.get(x);
+                return IntStream.range(0, columns.size()).mapToObj(y -> new Position(x,y)).toList();
+            }).flatMap(Collection::stream).map(p -> new Score(p, getScore(p))).sorted((s1, s2) -> Long.compare(s2.score, s1.score)).toList();
+            return positions.get(0);
+        }
     }
 
     private static Set<Position> intersect(Set<Position> forwardPositions, Set<Position> backwardPositions) {
@@ -152,17 +211,23 @@ public class Day8 {
     }
 
     private static void execise1(List<String> lines) {
-        var map = new Map(lines.stream().map(line -> {
-            int width = line.length();
-            return IntStream.range(0, width).map(i -> Integer.parseInt(line.substring(i,i+1))).collect(ArrayList<Integer>::new, ArrayList<Integer>::add, ArrayList<Integer>::addAll);
-        }).toList());
+        var map = getMap(lines);
         var hidden = map.getHidden();
         hidden.forEach(System.out::println);
         System.out.println(map.size()-hidden.size());
 
     }
 
-//    private static void execise2(List<String> lines) {
-//
-//    }
+    private static Map getMap(List<String> lines) {
+        return new Map(lines.stream().map(line -> {
+            int width = line.length();
+            return IntStream.range(0, width).map(i -> Integer.parseInt(line.substring(i, i + 1))).collect(ArrayList<Integer>::new, ArrayList<Integer>::add, ArrayList<Integer>::addAll);
+        }).toList());
+    }
+
+    private static void execise2(List<String> lines) {
+        var map = getMap(lines);
+        var bestPos = map.getBestPosition();
+        System.out.println(bestPos);
+    }
 }
