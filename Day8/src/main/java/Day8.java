@@ -10,7 +10,6 @@ import java.util.Set;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static java.lang.Math.abs;
 
@@ -23,7 +22,7 @@ public class Day8 {
                         .collect(ArrayList::new,
                                 ArrayList::add,
                                 ArrayList::addAll);
-                // execise1(lines);
+                execise1(lines);
                 execise2(lines);
 
             }
