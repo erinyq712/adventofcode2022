@@ -199,12 +199,13 @@ You count the pixels on the CRT: 40 wide and 6 high. This CRT screen draws the t
 
 Like the CPU, the CRT is tied closely to the clock circuit: the CRT draws a single pixel during each cycle. Representing each pixel of the screen as a #, here are the cycles during which the first and last pixel in each row are drawn:
 
-Cycle   1 -> ######################################## <- Cycle  40
-Cycle  41 -> ######################################## <- Cycle  80
-Cycle  81 -> ######################################## <- Cycle 120
-Cycle 121 -> ######################################## <- Cycle 160
-Cycle 161 -> ######################################## <- Cycle 200
-Cycle 201 -> ######################################## <- Cycle 240
+Cycle   1 -> ######################################## <- Cycle  40  
+Cycle  41 -> ######################################## <- Cycle  80  
+Cycle  81 -> ######################################## <- Cycle 120  
+Cycle 121 -> ######################################## <- Cycle 160  
+Cycle 161 -> ######################################## <- Cycle 200  
+Cycle 201 -> ######################################## <- Cycle 240  
+
 So, by carefully timing the CPU instructions and the CRT drawing operations, you should be able to determine whether the sprite is visible the instant each pixel is drawn. If the sprite is positioned such that one of its three pixels is the pixel currently being drawn, the screen produces a lit pixel (#); otherwise, the screen leaves the pixel dark (.).
 
 The first few pixels from the larger example above are drawn as follows:

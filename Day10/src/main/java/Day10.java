@@ -17,7 +17,7 @@ public class Day10 {
                                 ArrayList::add,
                                 ArrayList::addAll);
                 execise1(lines);
-                // execise2(lines);
+                execise2(lines);
 
             }
         } catch (IOException e) {
@@ -39,7 +39,7 @@ public class Day10 {
         protected final InstructionType type;
         protected final int parameter;
 
-        public Instruction(InstructionType type, int parameter) {
+        protected Instruction(InstructionType type, int parameter) {
             this.type = type;
             this.parameter = parameter;
         }
@@ -56,7 +56,7 @@ public class Day10 {
             super(InstructionType.NOOP, parameter);
         }
         public void execute(Processor p) {
-
+            // NOOP
         }
     }
 
@@ -70,6 +70,45 @@ public class Day10 {
     }
 
     record Execution(Instruction instruction, long cycle) {
+    }
+
+    static class Display {
+        public static final int SIZE = 40;
+        public static final int ROWS = 6;
+
+        private char[][] buffers = new char[ROWS][SIZE];
+
+        public Display() {
+            IntStream.range(0,ROWS).forEach(i -> buffers[i] = getDisplayBuffer());
+        }
+        private int row = 0;
+        private int position = 0;
+
+        private char[] getDisplayBuffer() {
+            return ".".repeat(SIZE).toCharArray();
+        }
+
+        public List<String> get() {
+            row = 0;
+            position = 0;
+            return IntStream.range(0,ROWS).mapToObj(i -> String.valueOf(buffers[i])).toList();
+        }
+
+        public void set(int x) {
+            if (x-1 == position || x == position || x+1 == position) {
+                buffers[row][position] = '#';
+            }
+            if (position == Display.SIZE-1) {
+                position = 0;
+                row++;
+            } else {
+                position++;
+            }
+        }
+
+        public boolean ready() {
+            return row == ROWS;
+        }
     }
 
     static class Processor {
@@ -100,10 +139,7 @@ public class Day10 {
             if (cycle == 20 || (cycle > 20 && (cycle-20) % 40 == 0)) {
                 signalStrengths.add(cycle*x);
             }
-            while (! executions.isEmpty() && executions.peek().cycle == cycle) {
-                var next = executions.remove();
-                next.instruction.execute(this);
-            }
+            execute();
         }
 
         public void addx(int inc) {
@@ -125,9 +161,31 @@ public class Day10 {
         public long getSumOfSignalStrengths() {
             return signalStrengths.stream().reduce(Long::sum).orElse(0L);
         }
-    };
+
+        public void display(Display display) {
+            // Must set last pixel before setting value in next row
+            display.set(x);
+            executeNext();
+        }
+
+        private void execute() {
+            while (! executions.isEmpty() && executions.peek().cycle == cycle) {
+                var next = executions.remove();
+                next.instruction.execute(this);
+            }
+        }
+    }
 
     private static void execise1(List<String> lines) {
+        Processor processor = getProcessor(lines);
+        processor.start();
+        while (processor.getCycle() < 221 && ! processor.done()) {
+            processor.executeNext();
+        }
+        System.out.println(processor.getSumOfSignalStrengths());
+    }
+
+    private static Processor getProcessor(List<String> lines) {
         Processor processor = new Processor();
         lines.stream().forEach(l -> {
             String[] words = l.split(" ");
@@ -140,14 +198,16 @@ public class Day10 {
                 throw new IllegalArgumentException("Not implemented");
             }
         });
-        processor.start();
-        while (processor.getCycle() < 221 && ! processor.done()) {
-            processor.executeNext();
-        }
-        System.out.println(processor.getSumOfSignalStrengths());
+        return processor;
     }
 
-    //private static void execise2(List<String> lines) {
-
-    //}
+    private static void execise2(List<String> lines) {
+        Processor processor = getProcessor(lines);
+        processor.start();
+        var display = new Display();
+        while (! display.ready()) {
+            processor.display(display);
+        }
+        display.get().forEach(System.out::println);
+    }
 }
