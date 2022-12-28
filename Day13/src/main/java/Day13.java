@@ -1,3 +1,6 @@
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -9,6 +12,9 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class Day13 {
+
+    private static Logger log = LoggerFactory.getLogger(Day13.class);
+
     public static void main(String[] args) {
         try {
             var path = args.length > 0 ? Path.of(args[0]) : Path.of("input.txt");
@@ -26,10 +32,10 @@ public class Day13 {
         }
     }
 
-    private static class Token {
+    private static interface Token {
     }
 
-    public static class GroupStart extends Token {
+    public static class GroupStart implements Token {
         @Override
         public String toString() {
             return "[";
@@ -41,7 +47,7 @@ public class Day13 {
         }
     }
 
-    public static class GroupEnd extends Token {
+    public static class GroupEnd implements Token {
         public String toString() {
             return "]";
         }
@@ -52,7 +58,7 @@ public class Day13 {
         }
     }
 
-    public static class Comma extends Token {
+    public static class Comma implements Token {
         public String toString() {
             return "";
         }
@@ -62,7 +68,7 @@ public class Day13 {
         }
     }
 
-    public static class NumberToken extends Token {
+    public static class NumberToken implements Token {
         private Integer number;
         public NumberToken(String s) {
             number = Integer.parseInt(s);
@@ -77,6 +83,12 @@ public class Day13 {
             } else {
                 return false;
             }
+        }
+    }
+
+    private static class LexerException extends RuntimeException {
+        public LexerException(String s) {
+            super(s);
         }
     }
 
@@ -110,7 +122,7 @@ public class Day13 {
 
         private void nextToken() {
             if (start >= line.length()) {
-                throw new RuntimeException("End");
+                throw new LexerException("End");
             }
             if (line.charAt(start) == '[') {
                 token = new GroupStart();
@@ -151,14 +163,7 @@ public class Day13 {
 
     public static int compareNodes(Node n1, Node n2) {
         if (n1.isLeaf() && n2.isLeaf()) {
-            var c = Integer.compare(n1.number, n2.number);
-            if (c < 0) {
-                return -1;
-            } else if (c > 0) {
-                return 1;
-            } else {
-                return 0;
-            }
+            return compareLeafs(n1, n2);
         } else if (n1.isLeaf()) {
             var newNode = new Node();
             newNode.add(n1);
@@ -168,19 +173,34 @@ public class Day13 {
             newNode.add(n2);
             return compareNodes(n1, newNode);
         } else {
-            var it1 = n1.children.iterator();
-            var it2 = n2.children.iterator();
-            while (it1.hasNext() && it2.hasNext()) {
-                var suv = compareNodes(it1.next(), it2.next());
-                if (suv != 0) {
-                    return suv;
-                }
+            return compareLists(n1, n2);
+        }
+    }
+
+    private static int compareLists(Node n1, Node n2) {
+        var it1 = n1.children.iterator();
+        var it2 = n2.children.iterator();
+        while (it1.hasNext() && it2.hasNext()) {
+            var suv = compareNodes(it1.next(), it2.next());
+            if (suv != 0) {
+                return suv;
             }
-            if (! it1.hasNext() && ! it2.hasNext()) {
-                return 0;
-            } else {
-                return it1.hasNext() ? 1 : -1;
-            }
+        }
+        if (! it1.hasNext() && ! it2.hasNext()) {
+            return 0;
+        } else {
+            return it1.hasNext() ? 1 : -1;
+        }
+    }
+
+    private static int compareLeafs(Node n1, Node n2) {
+        var c = Integer.compare(n1.number, n2.number);
+        if (c < 0) {
+            return -1;
+        } else if (c > 0) {
+            return 1;
+        } else {
+            return 0;
         }
     }
 
@@ -224,16 +244,16 @@ public class Day13 {
         private void buildTree(Node root, Iterator<Token> it) {
             while (it.hasNext()) {
                 var nextToken = it.next();
-                if (nextToken instanceof GroupStart ts) {
+                if (nextToken instanceof GroupStart) {
                     var next = new Node();
                     root.add(next);
                     buildTree(next, it);
-                } else if (nextToken instanceof GroupEnd ts) {
+                } else if (nextToken instanceof GroupEnd) {
                     return;
                 } else if (nextToken instanceof NumberToken nt) {
                     var next = new Node(nt.number);
                     root.add(next);
-                } else if (nextToken instanceof Comma nt) {
+                } else if (nextToken instanceof Comma) {
                     // Do nothing
                 }
             }
@@ -242,12 +262,6 @@ public class Day13 {
         public Node getRoot() {
             return root;
         }
-    }
-
-    private static int comparePackets(List<Token> a, List<Token> b) {
-        NodeTree ng1 = new NodeTree(a);
-        NodeTree ng2 = new NodeTree(b);
-        return compareNodes(ng1.getRoot(), ng2.getRoot());
     }
 
     private static int comparePackets(Expression a, Expression b) {
@@ -265,18 +279,18 @@ public class Day13 {
     private static final Expression DELIMITER6 = new Expression(List.of(GROUP_START, GROUP_START, NUMBER_TOKEN_6, GROUP_END, GROUP_END));
 
     private static void execise1(List<String> lines) {
-        var expression = lines.stream().map(l -> {
+        var expressions = lines.stream().map(l -> {
             var lexer = new Lexer(l);
             var tokens = new ArrayList<Token>();
-            while(lexer.isMatch()) {
+            while (lexer.isMatch()) {
                 tokens.add(lexer.next());
             }
             return tokens;
-        }).toList();
+        }).filter(t -> !t.isEmpty()).map(Expression::new).toList();
 
-        var result = IntStream.range(0, (expression.size()+1)/3).map(i -> {
-            var exp1 = expression.get(i*3);
-            var exp2 = expression.get(i*3 +1);
+        var result = IntStream.range(0, (expressions.size()+1)/2).map(i -> {
+            var exp1 = expressions.get(i*2);
+            var exp2 = expressions.get(i*2+1);
             NodeTree ng1 = new NodeTree(exp1);
             NodeTree ng2 = new NodeTree(exp2);
             var nodeCheck = compareNodes(ng1.getRoot(), ng2.getRoot());
@@ -286,13 +300,8 @@ public class Day13 {
             return -1;
         }).toArray();
 
-        var sum = IntStream.range(0, (expression.size()+1)/3).map(i -> {
-            var exp1 = expression.get(i*3);
-            var exp2 = expression.get(i*3 +1);
-            System.out.println((i+1) + " " + result[i]);
-            return result[i] == -1 ? i+1 : 0;
-        }).sum();
-        System.out.println("Sum: " + sum);
+        var sum = IntStream.range(0, (expressions.size()+1)/2).map(i -> result[i] == -1 ? i+1 : 0).sum();
+        log.info("Sum: {}", sum);
     }
 
     private static void execise2(List<String> lines) {
@@ -303,7 +312,7 @@ public class Day13 {
                 tokens.add(lexer.next());
             }
             return tokens;
-        }).filter(t -> !t.isEmpty()).map(l -> new Expression(l)).toList();
+        }).filter(t -> !t.isEmpty()).map(Expression::new).toList();
 
 
         var result = Stream.concat(expressions.stream(), Stream.of(DELIMITER2, DELIMITER6)).sorted(Day13::comparePackets).toList();
@@ -313,7 +322,7 @@ public class Day13 {
                 .map(i->i+1)
                 .toArray();
 
-        System.out.println("Result: " + (dividers[0] * dividers[1]));
+        log.info("Result: {}", dividers[0] * dividers[1]);
     }
 
 }
