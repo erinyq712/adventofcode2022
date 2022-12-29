@@ -31,7 +31,7 @@ public class Day14 {
                                 ArrayList::add,
                                 ArrayList::addAll);
                 execise1(lines);
-                // execise2(lines);
+                execise2(lines);
 
             }
         } catch (IOException e) {
@@ -60,43 +60,35 @@ public class Day14 {
     }
 
     enum ItemType {
-        Rock,
-        Sand,
-        Air
+        ROCK,
+        SAND,
+        AIR
     }
 
     static class CaveMap {
         private Map<Position, ItemType> items;
-        private Position topLeft;
-        private Position downRight;
+        protected Position topLeft;
+        protected Position downRight;
 
-        public CaveMap() {
-            items = new HashMap<>();
-            topLeft = START_POSITION;
-            downRight = START_POSITION;
+        public CaveMap(Map<Position, ItemType> caveMap) {
+            items = caveMap;
+            int xmin = caveMap.keySet().stream().map(Position::x).min(Integer::compareTo).orElse(0);
+            int xmax = caveMap.keySet().stream().map(Position::x).max(Integer::compareTo).orElse(0);
+            int ymin = caveMap.keySet().stream().map(Position::y).min(Integer::compareTo).orElse(0);
+            int ymax = caveMap.keySet().stream().map(Position::y).max(Integer::compareTo).orElse(0);
+            topLeft = new Position(xmin, ymin);
+            downRight = new Position(xmax, ymax);
         }
 
         public void put(Position p, ItemType t) {
             items.put(p,t);
-            if (p.x() < topLeft.x()) {
-                topLeft = new Position(p.x(), topLeft.y());
-            }
-            if (p.x() > downRight.x()) {
-                if (p.y() > downRight.y()) {
-                    downRight = new Position(p.x(), p.y());
-                } else {
-                    downRight = new Position(p.x(), downRight.y());
-                }
-            } else if (p.y() > downRight.y()) {
-                downRight = new Position(p.x(), downRight.y());
-            }
         }
 
         public ItemType findItemType(Position p) {
             if (items.containsKey(p)) {
                 return items.get(p);
             } else {
-                return ItemType.Air;
+                return ItemType.AIR;
             }
         }
 
@@ -106,16 +98,75 @@ public class Day14 {
                     grainPosition.y() <= downRight.y();
         }
 
-        public long count(ItemType sand) {
-            return items.values().stream().filter(it -> it == ItemType.Sand).count();
+        public long count(ItemType type) {
+            return items.values().stream().filter(it -> it == type).count();
+        }
+
+        public boolean isAvailable(Position nextGrainPosition) {
+            var itemType = findItemType(nextGrainPosition);
+            return itemType == ItemType.AIR;
+        }
+    }
+
+    static class CaveMapWithFloor extends CaveMap {
+
+        public CaveMapWithFloor(Map<Position, ItemType> caveMap) {
+            super(caveMap);
+
+        }
+
+        @Override
+        public boolean isInside(Position grainPosition) {
+            return grainPosition.y() <= downRight.y() + 1;
+        }
+
+        @Override
+        public boolean isAvailable(Position nextGrainPosition) {
+            if (! isInside(nextGrainPosition)) {
+                return false;
+            }
+            return super.isAvailable(nextGrainPosition);
         }
     }
 
     private static String regex = "(\\d{1,3},\\d{1,3})";
     private static Pattern positionsPattern = Pattern.compile(regex);
 
-    private static void execise1(List<String> lines) {
-        CaveMap map = new CaveMap();
+    private static boolean checkIfPositionIsAvailable(CaveMap map, Position nextGrainPosition) {
+        return map.isAvailable(nextGrainPosition);
+    }
+
+    private static Position processRange(Map<Position, ItemType> map, Position prev, String range) {
+        var current = newPosition(range);
+        map.put(current, ItemType.ROCK);
+        if (prev != null) {
+            var diff = current.subtract(prev);
+            if (diff.x == 0) {
+                while (! prev.equals(current)) {
+                    prev = prev.add(getNextY(diff));
+                    map.put(prev, ItemType.ROCK);
+                }
+            } else if (diff.y == 0) {
+                while (! prev.equals(current)) {
+                    prev = prev.add(getNextX(diff));
+                    map.put(prev, ItemType.ROCK);
+                }
+            }
+            assert(prev.equals(current));
+        }
+        return current;
+    }
+
+    private static Position getNextX(Position diff) {
+        return diff.x() > 0 ? ONE_RIGHT : ONE_LEFT;
+    }
+
+    private static Position getNextY(Position diff) {
+        return diff.y() > 0 ? ONE_UP : ONE_DOWN;
+    }
+
+    private static Map<Position, ItemType> createCaveMap(List<String> lines) {
+        Map<Position, ItemType> map = new HashMap<>();
         lines.forEach(line -> {
             var matcher = positionsPattern.matcher(line);
             Position prev = null;
@@ -124,6 +175,10 @@ public class Day14 {
                 prev = processRange(map, prev, range);
             }
         });
+        return map;
+    }
+
+    private static void processSand(CaveMap map) {
         boolean done = false;
         while (! done) {
             Position grainPosition = START_POSITION;
@@ -148,42 +203,26 @@ public class Day14 {
                 }
             }
             if (map.isInside(grainPosition)) {
-                map.put(grainPosition, ItemType.Sand);
+                map.put(grainPosition, ItemType.SAND);
+                done = grainPosition == START_POSITION;
             } else {
                 done = true;
             }
         }
-        var result = map.count(ItemType.Sand);
+    }
+
+    private static void execise1(List<String> lines) {
+        CaveMap map = new CaveMap(createCaveMap(lines));
+        processSand(map);
+        var result = map.count(ItemType.SAND);
         log.info("Result: {}", result);
     }
 
-    private static boolean checkIfPositionIsAvailable(CaveMap map, Position nextGrainPosition) {
-        var itemType = map.findItemType(nextGrainPosition);
-        return itemType == ItemType.Air;
-    }
+    private static void execise2(List<String> lines) {
+        CaveMapWithFloor map = new CaveMapWithFloor(createCaveMap(lines));
+        processSand(map);
 
-    private static Position processRange(CaveMap map, Position prev, String range) {
-        var current = newPosition(range);
-        map.put(current, ItemType.Rock);
-        if (prev != null) {
-            var diff = current.subtract(prev);
-            if (diff.x == 0) {
-                while (! prev.equals(current)) {
-                    prev = prev.add(diff.y() > 0 ? ONE_UP : ONE_DOWN);
-                    map.put(prev, ItemType.Rock);
-                }
-            } else if (diff.y == 0) {
-                while (! prev.equals(current)) {
-                    prev = prev.add(diff.x() > 0 ? ONE_RIGHT : ONE_LEFT);
-                    map.put(prev, ItemType.Rock);
-                }
-            }
-            assert(prev.equals(current));
-        }
-        return current;
+        var result = map.count(ItemType.SAND);
+        log.info("Result: {}", result);
     }
-
-//    private static void execise2(List<String> lines) {
-//
-//    }
 }
