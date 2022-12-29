@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 public class Day14 {
 
@@ -18,8 +19,9 @@ public class Day14 {
     private static final Position ONE_UP = new Position(0,1);
     private static final Position ONE_DOWN = new Position(0,-1);
     private static final Position ONE_RIGHT = new Position(1,0);
-    private static final Position TWO_RIGHT = new Position(2,0);
     private static final Position ONE_LEFT = new Position(-1,0);
+    private static final Position ONE_UPLEFT = new Position(-1,1);
+    private static final Position ONE_UPRIGHT = new Position(1,1);
     public static final Position START_POSITION = new Position(500, 0);
 
     public static void main(String[] args) {
@@ -184,22 +186,12 @@ public class Day14 {
             Position grainPosition = START_POSITION;
             boolean canMove = true;
             while (canMove && map.isInside(grainPosition)) {
-                var newPosition = grainPosition.add(ONE_UP);
-                canMove = checkIfPositionIsAvailable(map, newPosition);
+                var newPosition = Stream.of(grainPosition.add(ONE_UP), grainPosition.add(ONE_UPLEFT), grainPosition.add(ONE_UPRIGHT))
+                        .filter(p -> checkIfPositionIsAvailable(map, p))
+                        .findFirst().orElse(START_POSITION);
+                canMove = newPosition != START_POSITION;
                 if (canMove) {
                     grainPosition = newPosition;
-                } else {
-                    newPosition = newPosition.add(ONE_LEFT);
-                    canMove = checkIfPositionIsAvailable(map, newPosition);
-                    if (canMove) {
-                        grainPosition = newPosition;
-                    } else {
-                        newPosition = newPosition.add(TWO_RIGHT);
-                        canMove = checkIfPositionIsAvailable(map, newPosition);
-                        if (canMove) {
-                            grainPosition = newPosition;
-                        }
-                    }
                 }
             }
             if (map.isInside(grainPosition)) {
