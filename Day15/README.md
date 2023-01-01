@@ -100,7 +100,8 @@ Consult the report from the sensors you just deployed. In the row where y=200000
 
 Your puzzle answer was 5147333.
 
---- Part Two ---
+## --- Part Two ---
+
 Your handheld device indicates that the distress signal is coming from a beacon nearby. The distress beacon is not detected by any sensor, but the distress beacon must have x and y coordinates each no lower than 0 and no larger than 4000000.
 
 To isolate the distress beacon's signal, you need to determine its tuning frequency, which can be found by multiplying its x coordinate by 4000000 and then adding its y coordinate.
